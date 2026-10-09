@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_prayer_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_prayer_background"
+    android:gravity="center_vertical"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/prayer_next"
+        android:textColor="@color/widget_prayer_secondary"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/widget_prayer_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:gravity="end"
+        android:maxLines="1"
+        android:text="@string/prayer_title"
+        android:textColor="@color/widget_prayer_primary"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_prayer_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:textColor="@color/widget_prayer_primary"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/widget_prayer_countdown"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:format24Hour="HH:mm:ss"
+        android:textColor="@color/widget_prayer_primary"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/widget_prayer_city"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:gravity="end"
+        android:maxLines="1"
+        android:textColor="@color/widget_prayer_secondary"
+        android:textSize="12sp" />
+</LinearLayout>

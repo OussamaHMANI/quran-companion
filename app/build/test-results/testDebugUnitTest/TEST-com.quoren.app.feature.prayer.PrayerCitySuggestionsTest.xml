@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.quoren.app.feature.prayer.PrayerCitySuggestionsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-10T00:00:23" hostname="DESKTOP-5NBKDPV" time="0.012">
+  <properties/>
+  <testcase name="ignoresShortAndUnmatchedQueries" classname="com.quoren.app.feature.prayer.PrayerCitySuggestionsTest" time="0.011"/>
+  <testcase name="selectingSfaxMosqueUsesItsMappedCoordinates" classname="com.quoren.app.feature.prayer.PrayerCitySuggestionsTest" time="0.0"/>
+  <testcase name="suggestsSfaxTunisiaForLatinAndArabicQueries" classname="com.quoren.app.feature.prayer.PrayerCitySuggestionsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

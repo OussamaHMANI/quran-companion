@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.quoren.app.domain.memorization.SpacedRepetitionEngineTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-10T00:00:23" hostname="DESKTOP-5NBKDPV" time="0.005">
+  <properties/>
+  <testcase name="newAyahIsDueOnDayZero" classname="com.quoren.app.domain.memorization.SpacedRepetitionEngineTest" time="0.002"/>
+  <testcase name="allowsAnEarlyUserRequestedReviewAndReschedulesIt" classname="com.quoren.app.domain.memorization.SpacedRepetitionEngineTest" time="0.0"/>
+  <testcase name="threeConsecutiveHardRatingsMarkAyahWeakUntilSuccessfulReview" classname="com.quoren.app.domain.memorization.SpacedRepetitionEngineTest" time="0.001"/>
+  <testcase name="hardRatingMovesBackAndSchedulesTomorrow" classname="com.quoren.app.domain.memorization.SpacedRepetitionEngineTest" time="0.0"/>
+  <testcase name="dueQueueExcludesNewAyahsAndSortsByDateThenAyahId" classname="com.quoren.app.domain.memorization.SpacedRepetitionEngineTest" time="0.002"/>
+  <testcase name="successfulReviewsFollowTheSpacedSchedule" classname="com.quoren.app.domain.memorization.SpacedRepetitionEngineTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

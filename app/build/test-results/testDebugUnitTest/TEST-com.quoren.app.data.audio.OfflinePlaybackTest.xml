@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.quoren.app.data.audio.OfflinePlaybackTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-10T00:00:22" hostname="DESKTOP-5NBKDPV" time="0.186">
+  <properties/>
+  <testcase name="downloadedAyahResolvesToLocalFileAheadOfStreaming" classname="com.quoren.app.data.audio.OfflinePlaybackTest" time="0.162"/>
+  <testcase name="missingEmptyOrPartialFilesFallBackToStreaming" classname="com.quoren.app.data.audio.OfflinePlaybackTest" time="0.009"/>
+  <testcase name="lowQualityUsesLowBitrateUrlWhenAvailable" classname="com.quoren.app.data.audio.OfflinePlaybackTest" time="0.004"/>
+  <testcase name="deletingSurahDirectoryRemovesAllItsFiles" classname="com.quoren.app.data.audio.OfflinePlaybackTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

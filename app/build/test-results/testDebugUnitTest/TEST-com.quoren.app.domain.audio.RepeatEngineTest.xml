@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.quoren.app.domain.audio.RepeatEngineTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-10T00:00:23" hostname="DESKTOP-5NBKDPV" time="0.001">
+  <properties/>
+  <testcase name="ayahRepeatReplaysEachAyahWithDelay" classname="com.quoren.app.domain.audio.RepeatEngineTest" time="0.0"/>
+  <testcase name="unlimitedRangeRepeatLoopsForever" classname="com.quoren.app.domain.audio.RepeatEngineTest" time="0.0"/>
+  <testcase name="ayahAndRangeRepeatCombine" classname="com.quoren.app.domain.audio.RepeatEngineTest" time="0.0"/>
+  <testcase name="resetRestoresInitialState" classname="com.quoren.app.domain.audio.RepeatEngineTest" time="0.001"/>
+  <testcase name="rangeRepeatRestartsFromFirstAyah" classname="com.quoren.app.domain.audio.RepeatEngineTest" time="0.0"/>
+  <testcase name="jumpToResetsAyahPassOnlyWhenIndexChanges" classname="com.quoren.app.domain.audio.RepeatEngineTest" time="0.0"/>
+  <testcase name="unlimitedAyahRepeatNeverAdvances" classname="com.quoren.app.domain.audio.RepeatEngineTest" time="0.0"/>
+  <testcase name="singlePassAdvancesThroughRangeThenFinishes" classname="com.quoren.app.domain.audio.RepeatEngineTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

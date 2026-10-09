@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.quoren.app.domain.qibla.QiblaEngineTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-10T00:00:23" hostname="DESKTOP-5NBKDPV" time="0.004">
+  <properties/>
+  <testcase name="headingSmootherUsesShortestRotationAcrossNorth" classname="com.quoren.app.domain.qibla.QiblaEngineTest" time="0.001"/>
+  <testcase name="relativeBearingWrapsAcrossNorth" classname="com.quoren.app.domain.qibla.QiblaEngineTest" time="0.001"/>
+  <testcase name="qiblaAtKaabaHasZeroDistanceAndStableBearing" classname="com.quoren.app.domain.qibla.QiblaEngineTest" time="0.001"/>
+  <testcase name="rejectsInvalidCoordinates" classname="com.quoren.app.domain.qibla.QiblaEngineTest" time="0.001"/>
+  <testcase name="calculatesParisBearingAndDistanceToKaaba" classname="com.quoren.app.domain.qibla.QiblaEngineTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

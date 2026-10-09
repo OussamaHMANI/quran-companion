@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.quoren.app.domain.audio.AyahSynchronizationEngineTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-10T00:00:23" hostname="DESKTOP-5NBKDPV" time="0.047">
+  <properties/>
+  <testcase name="clearsHighlightWhenIdleOrEnded" classname="com.quoren.app.domain.audio.AyahSynchronizationEngineTest" time="0.034"/>
+  <testcase name="mapsSurahAndAyahNumberToGlobalAyahId" classname="com.quoren.app.domain.audio.AyahSynchronizationEngineTest" time="0.007"/>
+  <testcase name="emitsOnlyWhenAyahChanges" classname="com.quoren.app.domain.audio.AyahSynchronizationEngineTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.quoren.app.domain.prayer.PrayerTimeEngineTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-10T00:00:23" hostname="DESKTOP-5NBKDPV" time="0.021">
+  <properties/>
+  <testcase name="appliesEachConfiguredOffsetExactlyOnce" classname="com.quoren.app.domain.prayer.PrayerTimeEngineTest" time="0.003"/>
+  <testcase name="monthlyScheduleUsesTheSelectedLocalMonthLengthAndDates" classname="com.quoren.app.domain.prayer.PrayerTimeEngineTest" time="0.016"/>
+  <testcase name="nextPrayerSkipsSunriseAndUsesTomorrowFajrAcrossDaylightSavingBoundary" classname="com.quoren.app.domain.prayer.PrayerTimeEngineTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.quoren.app.core.common.ArabicSearchNormalizerTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-10T00:00:22" hostname="DESKTOP-5NBKDPV" time="0.013">
+  <properties/>
+  <testcase name="mapsAlefMaksuraToYeh" classname="com.quoren.app.core.common.ArabicSearchNormalizerTest" time="0.012"/>
+  <testcase name="stripsDiacriticsAndUnifiesAlef" classname="com.quoren.app.core.common.ArabicSearchNormalizerTest" time="0.0"/>
+  <testcase name="collapsesWhitespace" classname="com.quoren.app.core.common.ArabicSearchNormalizerTest" time="0.0"/>
+  <testcase name="doesNotMutateInput" classname="com.quoren.app.core.common.ArabicSearchNormalizerTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

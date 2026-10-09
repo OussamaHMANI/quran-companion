@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.5.2" type="partial_results">
+    <map id="UnsafeIntentLaunch">
+            <map id="unprotected">
+                <entry
+                    name="com.quoren.app.data.audio.PlaybackService"
+                    boolean="true"/>
+                <entry
+                    name="com.quoren.app.MainActivity"
+                    boolean="true"/>
+                <entry
+                    name="com.quoren.app.feature.prayer.PrayerWidgetProvider"
+                    boolean="true"/>
+            </map>
+    </map>
+    <map id="NotificationPermission">
+        <entry
+            name="source"
+            boolean="true"/>
+    </map>
+    <map id="ScheduleExactAlarm">
+        <location id="0"
+            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/quoren/app/data/prayer/PrayerNotificationWorkers.kt"
+            line="128"
+            column="9"
+            startOffset="5506"
+            endLine="128"
+            endColumn="119"
+            endOffset="5616"/>
+        <entry
+            name="ChecksExactAlarmPermission"
+            boolean="true"/>
+    </map>
+    <map id="UnsafeImplicitIntentLaunch">
+            <map id="actionsSent">
+                    <map id="android.settings.VOICE_INPUT_SETTINGS (used to start an activity)">
+                        <location id="0"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/quoren/app/feature/memorization/HifdhSessionScreen.kt"
+                            line="455"
+                            column="47"
+                            startOffset="22861"
+                            endLine="455"
+                            endColumn="91"
+                            endOffset="22905"/>
+                    </map>
+                    <map id="android.intent.action.VIEW (used to start an activity)">
+                        <location id="0"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/quoren/app/feature/mosque/MosqueScreen.kt"
+                            line="437"
+                            column="64"
+                            startOffset="21434"
+                            endLine="437"
+                            endColumn="106"
+                            endOffset="21476"/>
+                    </map>
+                    <map id="android.intent.action.DIAL (used to start an activity)">
+                        <location id="0"
+                            file="${:app*debug*MAIN*sourceProvider*0*javaDir*0}/com/quoren/app/feature/mosque/MosqueScreen.kt"
+                            line="433"
+                            column="66"
+                            startOffset="21239"
+                            endLine="433"
+                            endColumn="118"
+                            endOffset="21291"/>
+                    </map>
+            </map>
+    </map>
+    <map id="UnusedResources">
+        <location id="R.string.prayer_month"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="233"
+            column="13"
+            startOffset="15215"
+            endLine="233"
+            endColumn="32"
+            endOffset="15234"/>
+        <location id="R.string.prayer_sfax_suggestion"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="201"
+            column="13"
+            startOffset="13112"
+            endLine="201"
+            endColumn="42"
+            endOffset="13141"/>
+        <location id="R.string.hifdh_finish_recitation"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="176"
+            column="13"
+            startOffset="11234"
+            endLine="176"
+            endColumn="43"
+            endOffset="11264"/>
+        <location id="R.string.hifdh_part_progress"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="161"
+            column="13"
+            startOffset="9606"
+            endLine="161"
+            endColumn="39"
+            endOffset="9632"/>
+        <location id="R.string.action_audio_settings"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="51"
+            column="13"
+            startOffset="2690"
+            endLine="51"
+            endColumn="41"
+            endOffset="2718"/>
+        <entry
+            name="model"
+            string="color[widget_prayer_secondary(U),widget_prayer_primary(U),ic_launcher_background(U)],drawable[ic_delete(U),ic_download(U),ic_hifdh(U),ic_launcher_foreground(U),ic_mic(U),ic_pause(U),ic_play(U),ic_skip_next(U),ic_skip_previous(U),ic_stop(U),widget_prayer_background(U)],font[amiri_quran(R)],id[widget_prayer_root(U),widget_prayer_name(U),widget_prayer_time(U),widget_prayer_countdown(U),widget_prayer_city(U)],layout[widget_prayer(U)],mipmap[ic_launcher(U)],raw[adhan_other(U)],string[app_name(U),prayer_next(U),prayer_title(U),app_developed_by(U),action_back(U),action_search(U),action_settings(U),action_close(U),action_retry(U),continue_reading(D),tab_surahs(U),tab_juz(U),tab_bookmarks(U),meccan(U),medinan(U),ayah_count(U),page_label(U),juz_label(U),surah_header(U),surah_page_info(U),juz_page_info(U),ayah_ref(U),load_error(U),loading(U),font_size(U),line_spacing(U),theme(U),theme_system(U),theme_light(U),theme_dark(U),bookmark_add(U),bookmark_remove(U),bookmark_add_ayah(U),bookmark_remove_ayah(U),ayah_menu_title(U),no_bookmarks(U),search_hint(U),search_empty(U),search_min_chars(U),search_results_note(D),audio_item_title(U),audio_surah_title(U),audio_channel_name(U),action_play(U),action_pause(U),action_stop(U),action_next(U),action_previous(U),action_player(U),action_downloads(U),action_audio_settings(D),action_reciters(U),action_play_audio(U),menu_play_ayah(U),menu_repeat_ayah(U),menu_play_from_here(U),playback_options(U),play_surah(U),play_range(U),from_ayah(U),to_ayah(U),reciter_label(U),repeat_ayah(U),repeat_range(U),repeat_delay(U),repeat_times(U),repeat_unlimited(U),delay_seconds(U),return_to_current(U),player_ayah_progress(U),player_repeat_pass(U),reciter_photo(U),downloads_title(U),storage_usage(U),cache_size(U),clear_cache(U),download_action(U),download_pause(U),download_resume(U),download_retry(U),download_delete(U),status_queued(U),status_downloading(U),status_paused(U),status_completed(U),status_failed(U),no_downloads(U),available_surahs(U),audio_settings_title(U),default_reciter(U),streaming_quality(U),quality_high(U),quality_low(U),auto_download(U),cache_limit(U),megabytes(U),err_no_internet(U),err_server(U),err_download(U),err_storage(U),err_corrupted(U),err_timeout(U),err_unknown(U),source_attribution(U),tab_memorization(U),hifdh_title(U),hifdh_continue(U),hifdh_new_session(U),hifdh_start_review(U),hifdh_no_reviews(U),hifdh_statistics(U),hifdh_memorized_count(U),hifdh_learning_count(U),hifdh_due_count(U),hifdh_weak_count(U),hifdh_daily_goal(U),hifdh_goal_progress(U),hifdh_surah(U),hifdh_start_ayah(U),hifdh_end_ayah(U),hifdh_reciter(U),hifdh_repeat_count(U),hifdh_mode(U),hifdh_mode_read_listen(U),hifdh_mode_listen_recall(U),hifdh_mode_voice_recall(U),hifdh_mode_progressive(U),hifdh_mode_group(U),hifdh_session_title(U),hifdh_reveal_ayah(U),hifdh_hide_level(U),hifdh_less_hidden(U),hifdh_more_hidden(U),hifdh_repeat_group(U),hifdh_previous_ayah(U),hifdh_next_ayah(U),hifdh_rate_prompt(U),hifdh_rate_hard(U),hifdh_rate_medium(U),hifdh_rate_easy(U),hifdh_status_new(U),hifdh_status_learning(U),hifdh_status_review(U),hifdh_status_memorized(U),hifdh_session_complete(U),hifdh_close_session(U),hifdh_invalid_range(U),hifdh_start_recognition(U),hifdh_recitation_retrying(U),hifdh_listening(U),hifdh_recitation_correct(U),hifdh_recitation_incorrect(U),hifdh_recitation_uncertain(U),hifdh_offline_asr_unavailable(U),hifdh_offline_model_required(U),hifdh_start_after_download(U),hifdh_start_when_model_ready(U),hifdh_starting_after_model_download(U),permission_microphone_required(U),hifdh_reveal_next_part(U),hifdh_part_progress(D),hifdh_download_offline_model(U),hifdh_model_download_progress(U),hifdh_model_download_starting(U),hifdh_model_download_network_error(U),hifdh_model_download_storage_error(U),hifdh_model_download_invalid_error(U),hifdh_model_download_unknown_error(U),hifdh_online_recognition(U),hifdh_online_service_unavailable(U),hifdh_open_voice_settings(U),hifdh_online_network_unavailable(U),hifdh_online_consent_title(U),hifdh_online_consent_message(U),hifdh_online_consent_accept(U),hifdh_finish_recitation(D),hifdh_stop_recitation(U),reader_voice_practice(U),reader_voice_word_progress(U),reader_voice_complete(U),hifdh_no_sessions(U),action_continue(U),prayer_settings(U),prayer_location_not_set(U),prayer_location_loading(U),prayer_location_unavailable(U),prayer_calculation_error(U),prayer_remaining(U),prayer_current(U),prayer_status_current(U),prayer_status_past(U),prayer_status_upcoming(U),prayer_location_prompt(U),prayer_set_location(U),prayer_location_permission_title(U),prayer_location_permission_message(U),prayer_use_device_location(U),prayer_city(U),prayer_sfax_suggestion(D),prayer_sfax_main_mosque(D),prayer_main_mosque(U),prayer_use_main_mosque(U),prayer_keep_city_center(U),prayer_geocoder_attribution(U),prayer_osm_attribution(U),prayer_region(U),prayer_country(U),prayer_latitude(U),prayer_longitude(U),prayer_timezone(U),prayer_method(U),prayer_method_mwl(U),prayer_method_egyptian(U),prayer_method_umm_al_qura(U),prayer_method_isna(U),prayer_method_gulf(U),prayer_method_france(U),prayer_asr_madhab(U),prayer_shafi(U),prayer_hanafi(U),prayer_offsets(U),prayer_save(U),prayer_view_today(U),prayer_view_week(U),prayer_week_unavailable(U),prayer_view_month(U),prayer_previous_month(U),prayer_next_month(U),prayer_current_month(U),prayer_month_unavailable(U),prayer_month(D),prayer_upcoming_events(U),prayer_no_hijri_events(U),prayer_hijri_date_estimate(U),prayer_hijri_new_year(U),prayer_ashura(U),prayer_mawlid(U),prayer_isra_miraj(U),prayer_mid_shaaban(U),prayer_ramadan_start(U),prayer_eid_fitr(U),prayer_arafah(U),prayer_eid_adha(U),prayer_notification_channel(U),prayer_notification_title(U),prayer_notification_body(U),prayer_adhan_playing(U),prayer_stop_adhan(U),prayer_notifications(U),prayer_reminder(U),prayer_reminder_at_time(U),prayer_notification_permission_title(U),prayer_notification_permission_message(U),prayer_notification_reminder_body(U),prayer_exact_alarm_title(U),prayer_exact_alarm_message(U),prayer_exact_alarm_unavailable(U),prayer_play_adhan(U),prayer_adhan_other(U),prayer_adhan_notification_only(U),prayer_adhan_preview(U),prayer_adhan_credit_short(U),prayer_adhan_source_link(U),prayer_adhan_license_link(U),home_greeting(U),home_title(U),more_title(U),more_tools(U),home_quick_access(U),home_reading(U),home_continue_page(U),home_continue(U),home_browse(U),home_start_reading(U),home_prayer_location_missing(U),home_set_prayer_location(U),qibla_title(U),qibla_location_missing(U),qibla_location_unavailable(U),qibla_location_prompt(U),qibla_use_location(U),qibla_open_prayer_settings(U),qibla_kaaba(U),qibla_distance(U),qibla_heading(U),qibla_calibration_help(U),qibla_calculation_error(U),qibla_accuracy_high(U),qibla_accuracy_medium(U),qibla_accuracy_low(U),qibla_sensor_unavailable(U),prayer_fajr(U),prayer_sunrise(U),prayer_dhuhr(U),prayer_asr(U),prayer_maghrib(U),prayer_isha(U),prayer_widget_description(U),mosque_title(U),mosque_refresh(U),mosque_near_location(U),mosque_search_city(U),mosque_location_prompt(U),mosque_use_location(U),mosque_open_manual_location(U),mosque_map(U),mosque_list(U),mosque_favorites(U),mosque_search_name(U),mosque_map_unavailable(D),mosque_map_retry(U),mosque_open_map(D),mosque_open_google_maps(U),mosque_search_error(U),mosque_no_favorites(U),mosque_no_results(U),mosque_coordinates(U),mosque_directions(U),mosque_add_favorite(U),mosque_remove_favorite(U),mosque_call(U),mosque_website(U),backup_title(U),backup_export(U),backup_import(U),backup_export_success(U),backup_import_success(U),backup_file_error(U),backup_import_confirm_title(U),backup_import_confirm_message(U)],style[Theme_Quoren(U)],xml[prayer_widget_info(U)];14^d^18^0^19^1,15^2^6,161^2,162^140^14;;;"/>
+        <location id="R.string.prayer_sfax_main_mosque"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="202"
+            column="13"
+            startOffset="13176"
+            endLine="202"
+            endColumn="43"
+            endOffset="13206"/>
+        <location id="R.string.mosque_open_map"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="314"
+            column="13"
+            startOffset="21107"
+            endLine="314"
+            endColumn="35"
+            endOffset="21129"/>
+        <location id="R.string.search_results_note"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="40"
+            column="13"
+            startOffset="2067"
+            endLine="40"
+            endColumn="39"
+            endOffset="2093"/>
+        <location id="R.string.continue_reading"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="10"
+            column="13"
+            startOffset="432"
+            endLine="10"
+            endColumn="36"
+            endOffset="455"/>
+        <location id="R.string.mosque_map_unavailable"
+            file="${:app*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="312"
+            column="13"
+            startOffset="20940"
+            endLine="312"
+            endColumn="42"
+            endOffset="20969"/>
+    </map>
+
+</incidents>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.quoren.app.data.importer.QuranDatasetIntegrityTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-10T00:00:22" hostname="DESKTOP-5NBKDPV" time="0.448">
+  <properties/>
+  <testcase name="textFileMatchesPinnedChecksum" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.025"/>
+  <testcase name="structureIsValid" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.14"/>
+  <testcase name="onlyKnownSurahsHaveBasmalaPrefixDifferingFromAlFatiha" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.025"/>
+  <testcase name="tamperedTextIsDetectedByChecksum" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.007"/>
+  <testcase name="splittingBasmalaIsLossless" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.114"/>
+  <testcase name="metadataFileMatchesPinnedChecksum" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.002"/>
+  <testcase name="everyMarkerResolvesToAnAyahAndAssignmentIsMonotonic" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.047"/>
+  <testcase name="surahNineHasNoBasmalaPrefix" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.012"/>
+  <testcase name="textContainsOnlyArabicScriptSpacesAndMarks" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.049"/>
+  <testcase name="perSurahAyahCountsMatchMetadata" classname="com.quoren.app.data.importer.QuranDatasetIntegrityTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

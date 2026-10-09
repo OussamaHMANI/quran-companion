@@ -1,0 +1,1368 @@
+package com.quoren.app;
+
+import android.app.Activity;
+import android.app.Service;
+import android.content.Context;
+import android.view.View;
+import androidx.fragment.app.Fragment;
+import androidx.hilt.work.HiltWorkerFactory;
+import androidx.hilt.work.WorkerAssistedFactory;
+import androidx.hilt.work.WorkerFactoryModule_ProvideFactoryFactory;
+import androidx.lifecycle.SavedStateHandle;
+import androidx.lifecycle.ViewModel;
+import androidx.media3.datasource.cache.SimpleCache;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.work.ListenableWorker;
+import androidx.work.WorkerParameters;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.quoren.app.data.audio.AudioCacheManagerImpl;
+import com.quoren.app.data.audio.AudioFileStore;
+import com.quoren.app.data.audio.AudioSourceProviderImpl;
+import com.quoren.app.data.audio.ConfigurableLruCacheEvictor;
+import com.quoren.app.data.audio.Media3AudioPlayerManager;
+import com.quoren.app.data.audio.PlaybackService;
+import com.quoren.app.data.audio.PlaybackService_MembersInjector;
+import com.quoren.app.data.backup.LocalBackupRepositoryImpl;
+import com.quoren.app.data.download.DownloadRepositoryImpl;
+import com.quoren.app.data.download.SurahDownloadWorker;
+import com.quoren.app.data.download.SurahDownloadWorker_AssistedFactory;
+import com.quoren.app.data.importer.QuranDatasetImporter;
+import com.quoren.app.data.local.QuranDatabase;
+import com.quoren.app.data.memorization.AndroidOfflineRecitationRecognizer;
+import com.quoren.app.data.mosque.MosqueRepositoryImpl;
+import com.quoren.app.data.prayer.AndroidPrayerCitySearchRepository;
+import com.quoren.app.data.prayer.PrayerNotificationSchedulerImpl;
+import com.quoren.app.data.prayer.PrayerReminderRefreshWorker;
+import com.quoren.app.data.prayer.PrayerReminderRefreshWorker_AssistedFactory;
+import com.quoren.app.data.qibla.AndroidCompassRepository;
+import com.quoren.app.data.repository.AudioSettingsRepositoryImpl;
+import com.quoren.app.data.repository.BookmarkRepositoryImpl;
+import com.quoren.app.data.repository.MemorizationRepositoryImpl;
+import com.quoren.app.data.repository.PrayerRepositoryImpl;
+import com.quoren.app.data.repository.QuranRepositoryImpl;
+import com.quoren.app.data.repository.ReaderSettingsRepositoryImpl;
+import com.quoren.app.data.repository.ReadingProgressRepositoryImpl;
+import com.quoren.app.data.repository.ReciterRepositoryImpl;
+import com.quoren.app.di.AudioModule_CacheEvictorFactory;
+import com.quoren.app.di.AudioModule_ExoPlayerFactory;
+import com.quoren.app.di.AudioModule_OkHttpFactory;
+import com.quoren.app.di.AudioModule_SimpleCacheFactory;
+import com.quoren.app.di.DatabaseModule_DatabaseFactory;
+import com.quoren.app.domain.audio.AyahSynchronizationEngine;
+import com.quoren.app.domain.memorization.SpacedRepetitionEngine;
+import com.quoren.app.domain.prayer.PrayerAlertPlanner;
+import com.quoren.app.domain.prayer.PrayerTimeEngine;
+import com.quoren.app.domain.qibla.QiblaEngine;
+import com.quoren.app.domain.usecase.AudioCacheUseCase;
+import com.quoren.app.domain.usecase.CompleteDailyGoalAyahUseCase;
+import com.quoren.app.domain.usecase.CompleteMemorizationSessionUseCase;
+import com.quoren.app.domain.usecase.CreateMemorizationSessionUseCase;
+import com.quoren.app.domain.usecase.ExportUserBackupUseCase;
+import com.quoren.app.domain.usecase.GenerateDueReviewsUseCase;
+import com.quoren.app.domain.usecase.GetAyahByReferenceUseCase;
+import com.quoren.app.domain.usecase.GetAyahUseCase;
+import com.quoren.app.domain.usecase.GetBasmalaUseCase;
+import com.quoren.app.domain.usecase.GetCurrentDeviceLocationUseCase;
+import com.quoren.app.domain.usecase.GetJuzStartsUseCase;
+import com.quoren.app.domain.usecase.GetMemorizationSessionUseCase;
+import com.quoren.app.domain.usecase.GetPageUseCase;
+import com.quoren.app.domain.usecase.GetRecitersUseCase;
+import com.quoren.app.domain.usecase.GetSurahsUseCase;
+import com.quoren.app.domain.usecase.ImportUserBackupUseCase;
+import com.quoren.app.domain.usecase.ManageDownloadsUseCase;
+import com.quoren.app.domain.usecase.ObserveAudioSettingsUseCase;
+import com.quoren.app.domain.usecase.ObserveAyahMemorizationProgressUseCase;
+import com.quoren.app.domain.usecase.ObserveBookmarkedAyahIdsUseCase;
+import com.quoren.app.domain.usecase.ObserveBookmarksUseCase;
+import com.quoren.app.domain.usecase.ObserveDailyGoalUseCase;
+import com.quoren.app.domain.usecase.ObserveDefaultReciterUseCase;
+import com.quoren.app.domain.usecase.ObserveDownloadsUseCase;
+import com.quoren.app.domain.usecase.ObserveFavoriteMosquesUseCase;
+import com.quoren.app.domain.usecase.ObserveLastMosqueSearchUseCase;
+import com.quoren.app.domain.usecase.ObserveMemorizationCountsUseCase;
+import com.quoren.app.domain.usecase.ObserveMemorizationProgressUseCase;
+import com.quoren.app.domain.usecase.ObserveMemorizationSessionsUseCase;
+import com.quoren.app.domain.usecase.ObservePlaybackPositionUseCase;
+import com.quoren.app.domain.usecase.ObservePlaybackStateUseCase;
+import com.quoren.app.domain.usecase.ObservePrayerConfigurationUseCase;
+import com.quoren.app.domain.usecase.ObserveReaderSettingsUseCase;
+import com.quoren.app.domain.usecase.ObserveReadingProgressUseCase;
+import com.quoren.app.domain.usecase.PlayAudioUseCase;
+import com.quoren.app.domain.usecase.PlaybackControlsUseCase;
+import com.quoren.app.domain.usecase.RateReviewUseCase;
+import com.quoren.app.domain.usecase.SavePrayerLocationUseCase;
+import com.quoren.app.domain.usecase.SaveReadingProgressUseCase;
+import com.quoren.app.domain.usecase.SchedulePrayerNotificationsUseCase;
+import com.quoren.app.domain.usecase.SearchNearbyMosquesUseCase;
+import com.quoren.app.domain.usecase.SearchPrayerCitiesUseCase;
+import com.quoren.app.domain.usecase.SearchQuranUseCase;
+import com.quoren.app.domain.usecase.SetDefaultReciterUseCase;
+import com.quoren.app.domain.usecase.ToggleBookmarkUseCase;
+import com.quoren.app.domain.usecase.ToggleMosqueFavoriteUseCase;
+import com.quoren.app.domain.usecase.UpdateAudioSettingsUseCase;
+import com.quoren.app.domain.usecase.UpdateDailyGoalUseCase;
+import com.quoren.app.domain.usecase.UpdateMemorizationSessionPositionUseCase;
+import com.quoren.app.domain.usecase.UpdateMemorizationStatusUseCase;
+import com.quoren.app.domain.usecase.UpdatePrayerSettingsUseCase;
+import com.quoren.app.domain.usecase.UpdateReaderSettingsUseCase;
+import com.quoren.app.feature.audio.AudioSettingsViewModel;
+import com.quoren.app.feature.audio.AudioSettingsViewModel_HiltModules;
+import com.quoren.app.feature.audio.DownloadsViewModel;
+import com.quoren.app.feature.audio.DownloadsViewModel_HiltModules;
+import com.quoren.app.feature.audio.PlayerViewModel;
+import com.quoren.app.feature.audio.PlayerViewModel_HiltModules;
+import com.quoren.app.feature.backup.LocalBackupViewModel;
+import com.quoren.app.feature.backup.LocalBackupViewModel_HiltModules;
+import com.quoren.app.feature.bookmarks.BookmarksViewModel;
+import com.quoren.app.feature.bookmarks.BookmarksViewModel_HiltModules;
+import com.quoren.app.feature.memorization.HifdhDashboardViewModel;
+import com.quoren.app.feature.memorization.HifdhDashboardViewModel_HiltModules;
+import com.quoren.app.feature.memorization.HifdhSessionViewModel;
+import com.quoren.app.feature.memorization.HifdhSessionViewModel_HiltModules;
+import com.quoren.app.feature.mosque.MosqueViewModel;
+import com.quoren.app.feature.mosque.MosqueViewModel_HiltModules;
+import com.quoren.app.feature.prayer.PrayerViewModel;
+import com.quoren.app.feature.prayer.PrayerViewModel_HiltModules;
+import com.quoren.app.feature.qibla.QiblaViewModel;
+import com.quoren.app.feature.qibla.QiblaViewModel_HiltModules;
+import com.quoren.app.feature.quran.QuranIndexViewModel;
+import com.quoren.app.feature.quran.QuranIndexViewModel_HiltModules;
+import com.quoren.app.feature.reader.ReaderViewModel;
+import com.quoren.app.feature.reader.ReaderViewModel_HiltModules;
+import com.quoren.app.feature.search.SearchViewModel;
+import com.quoren.app.feature.search.SearchViewModel_HiltModules;
+import dagger.hilt.android.ActivityRetainedLifecycle;
+import dagger.hilt.android.ViewModelLifecycle;
+import dagger.hilt.android.internal.builders.ActivityComponentBuilder;
+import dagger.hilt.android.internal.builders.ActivityRetainedComponentBuilder;
+import dagger.hilt.android.internal.builders.FragmentComponentBuilder;
+import dagger.hilt.android.internal.builders.ServiceComponentBuilder;
+import dagger.hilt.android.internal.builders.ViewComponentBuilder;
+import dagger.hilt.android.internal.builders.ViewModelComponentBuilder;
+import dagger.hilt.android.internal.builders.ViewWithFragmentComponentBuilder;
+import dagger.hilt.android.internal.lifecycle.DefaultViewModelFactories;
+import dagger.hilt.android.internal.lifecycle.DefaultViewModelFactories_InternalFactoryFactory_Factory;
+import dagger.hilt.android.internal.managers.ActivityRetainedComponentManager_LifecycleModule_ProvideActivityRetainedLifecycleFactory;
+import dagger.hilt.android.internal.managers.SavedStateHandleHolder;
+import dagger.hilt.android.internal.modules.ApplicationContextModule;
+import dagger.hilt.android.internal.modules.ApplicationContextModule_ProvideContextFactory;
+import dagger.internal.DaggerGenerated;
+import dagger.internal.DoubleCheck;
+import dagger.internal.IdentifierNameString;
+import dagger.internal.KeepFieldType;
+import dagger.internal.LazyClassKeyMap;
+import dagger.internal.Preconditions;
+import dagger.internal.Provider;
+import dagger.internal.SingleCheck;
+import java.util.Map;
+import java.util.Set;
+import javax.annotation.processing.Generated;
+import okhttp3.OkHttpClient;
+
+@DaggerGenerated
+@Generated(
+    value = "dagger.internal.codegen.ComponentProcessor",
+    comments = "https://dagger.dev"
+)
+@SuppressWarnings({
+    "unchecked",
+    "rawtypes",
+    "KotlinInternal",
+    "KotlinInternalInJava",
+    "cast",
+    "deprecation"
+})
+public final class DaggerQuoranApp_HiltComponents_SingletonC {
+  private DaggerQuoranApp_HiltComponents_SingletonC() {
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static final class Builder {
+    private ApplicationContextModule applicationContextModule;
+
+    private Builder() {
+    }
+
+    public Builder applicationContextModule(ApplicationContextModule applicationContextModule) {
+      this.applicationContextModule = Preconditions.checkNotNull(applicationContextModule);
+      return this;
+    }
+
+    public QuoranApp_HiltComponents.SingletonC build() {
+      Preconditions.checkBuilderRequirement(applicationContextModule, ApplicationContextModule.class);
+      return new SingletonCImpl(applicationContextModule);
+    }
+  }
+
+  private static final class ActivityRetainedCBuilder implements QuoranApp_HiltComponents.ActivityRetainedC.Builder {
+    private final SingletonCImpl singletonCImpl;
+
+    private SavedStateHandleHolder savedStateHandleHolder;
+
+    private ActivityRetainedCBuilder(SingletonCImpl singletonCImpl) {
+      this.singletonCImpl = singletonCImpl;
+    }
+
+    @Override
+    public ActivityRetainedCBuilder savedStateHandleHolder(
+        SavedStateHandleHolder savedStateHandleHolder) {
+      this.savedStateHandleHolder = Preconditions.checkNotNull(savedStateHandleHolder);
+      return this;
+    }
+
+    @Override
+    public QuoranApp_HiltComponents.ActivityRetainedC build() {
+      Preconditions.checkBuilderRequirement(savedStateHandleHolder, SavedStateHandleHolder.class);
+      return new ActivityRetainedCImpl(singletonCImpl, savedStateHandleHolder);
+    }
+  }
+
+  private static final class ActivityCBuilder implements QuoranApp_HiltComponents.ActivityC.Builder {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private Activity activity;
+
+    private ActivityCBuilder(SingletonCImpl singletonCImpl,
+        ActivityRetainedCImpl activityRetainedCImpl) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+    }
+
+    @Override
+    public ActivityCBuilder activity(Activity activity) {
+      this.activity = Preconditions.checkNotNull(activity);
+      return this;
+    }
+
+    @Override
+    public QuoranApp_HiltComponents.ActivityC build() {
+      Preconditions.checkBuilderRequirement(activity, Activity.class);
+      return new ActivityCImpl(singletonCImpl, activityRetainedCImpl, activity);
+    }
+  }
+
+  private static final class FragmentCBuilder implements QuoranApp_HiltComponents.FragmentC.Builder {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private final ActivityCImpl activityCImpl;
+
+    private Fragment fragment;
+
+    private FragmentCBuilder(SingletonCImpl singletonCImpl,
+        ActivityRetainedCImpl activityRetainedCImpl, ActivityCImpl activityCImpl) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+      this.activityCImpl = activityCImpl;
+    }
+
+    @Override
+    public FragmentCBuilder fragment(Fragment fragment) {
+      this.fragment = Preconditions.checkNotNull(fragment);
+      return this;
+    }
+
+    @Override
+    public QuoranApp_HiltComponents.FragmentC build() {
+      Preconditions.checkBuilderRequirement(fragment, Fragment.class);
+      return new FragmentCImpl(singletonCImpl, activityRetainedCImpl, activityCImpl, fragment);
+    }
+  }
+
+  private static final class ViewWithFragmentCBuilder implements QuoranApp_HiltComponents.ViewWithFragmentC.Builder {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private final ActivityCImpl activityCImpl;
+
+    private final FragmentCImpl fragmentCImpl;
+
+    private View view;
+
+    private ViewWithFragmentCBuilder(SingletonCImpl singletonCImpl,
+        ActivityRetainedCImpl activityRetainedCImpl, ActivityCImpl activityCImpl,
+        FragmentCImpl fragmentCImpl) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+      this.activityCImpl = activityCImpl;
+      this.fragmentCImpl = fragmentCImpl;
+    }
+
+    @Override
+    public ViewWithFragmentCBuilder view(View view) {
+      this.view = Preconditions.checkNotNull(view);
+      return this;
+    }
+
+    @Override
+    public QuoranApp_HiltComponents.ViewWithFragmentC build() {
+      Preconditions.checkBuilderRequirement(view, View.class);
+      return new ViewWithFragmentCImpl(singletonCImpl, activityRetainedCImpl, activityCImpl, fragmentCImpl, view);
+    }
+  }
+
+  private static final class ViewCBuilder implements QuoranApp_HiltComponents.ViewC.Builder {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private final ActivityCImpl activityCImpl;
+
+    private View view;
+
+    private ViewCBuilder(SingletonCImpl singletonCImpl, ActivityRetainedCImpl activityRetainedCImpl,
+        ActivityCImpl activityCImpl) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+      this.activityCImpl = activityCImpl;
+    }
+
+    @Override
+    public ViewCBuilder view(View view) {
+      this.view = Preconditions.checkNotNull(view);
+      return this;
+    }
+
+    @Override
+    public QuoranApp_HiltComponents.ViewC build() {
+      Preconditions.checkBuilderRequirement(view, View.class);
+      return new ViewCImpl(singletonCImpl, activityRetainedCImpl, activityCImpl, view);
+    }
+  }
+
+  private static final class ViewModelCBuilder implements QuoranApp_HiltComponents.ViewModelC.Builder {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private SavedStateHandle savedStateHandle;
+
+    private ViewModelLifecycle viewModelLifecycle;
+
+    private ViewModelCBuilder(SingletonCImpl singletonCImpl,
+        ActivityRetainedCImpl activityRetainedCImpl) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+    }
+
+    @Override
+    public ViewModelCBuilder savedStateHandle(SavedStateHandle handle) {
+      this.savedStateHandle = Preconditions.checkNotNull(handle);
+      return this;
+    }
+
+    @Override
+    public ViewModelCBuilder viewModelLifecycle(ViewModelLifecycle viewModelLifecycle) {
+      this.viewModelLifecycle = Preconditions.checkNotNull(viewModelLifecycle);
+      return this;
+    }
+
+    @Override
+    public QuoranApp_HiltComponents.ViewModelC build() {
+      Preconditions.checkBuilderRequirement(savedStateHandle, SavedStateHandle.class);
+      Preconditions.checkBuilderRequirement(viewModelLifecycle, ViewModelLifecycle.class);
+      return new ViewModelCImpl(singletonCImpl, activityRetainedCImpl, savedStateHandle, viewModelLifecycle);
+    }
+  }
+
+  private static final class ServiceCBuilder implements QuoranApp_HiltComponents.ServiceC.Builder {
+    private final SingletonCImpl singletonCImpl;
+
+    private Service service;
+
+    private ServiceCBuilder(SingletonCImpl singletonCImpl) {
+      this.singletonCImpl = singletonCImpl;
+    }
+
+    @Override
+    public ServiceCBuilder service(Service service) {
+      this.service = Preconditions.checkNotNull(service);
+      return this;
+    }
+
+    @Override
+    public QuoranApp_HiltComponents.ServiceC build() {
+      Preconditions.checkBuilderRequirement(service, Service.class);
+      return new ServiceCImpl(singletonCImpl, service);
+    }
+  }
+
+  private static final class ViewWithFragmentCImpl extends QuoranApp_HiltComponents.ViewWithFragmentC {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private final ActivityCImpl activityCImpl;
+
+    private final FragmentCImpl fragmentCImpl;
+
+    private final ViewWithFragmentCImpl viewWithFragmentCImpl = this;
+
+    private ViewWithFragmentCImpl(SingletonCImpl singletonCImpl,
+        ActivityRetainedCImpl activityRetainedCImpl, ActivityCImpl activityCImpl,
+        FragmentCImpl fragmentCImpl, View viewParam) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+      this.activityCImpl = activityCImpl;
+      this.fragmentCImpl = fragmentCImpl;
+
+
+    }
+  }
+
+  private static final class FragmentCImpl extends QuoranApp_HiltComponents.FragmentC {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private final ActivityCImpl activityCImpl;
+
+    private final FragmentCImpl fragmentCImpl = this;
+
+    private FragmentCImpl(SingletonCImpl singletonCImpl,
+        ActivityRetainedCImpl activityRetainedCImpl, ActivityCImpl activityCImpl,
+        Fragment fragmentParam) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+      this.activityCImpl = activityCImpl;
+
+
+    }
+
+    @Override
+    public DefaultViewModelFactories.InternalFactoryFactory getHiltInternalFactoryFactory() {
+      return activityCImpl.getHiltInternalFactoryFactory();
+    }
+
+    @Override
+    public ViewWithFragmentComponentBuilder viewWithFragmentComponentBuilder() {
+      return new ViewWithFragmentCBuilder(singletonCImpl, activityRetainedCImpl, activityCImpl, fragmentCImpl);
+    }
+  }
+
+  private static final class ViewCImpl extends QuoranApp_HiltComponents.ViewC {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private final ActivityCImpl activityCImpl;
+
+    private final ViewCImpl viewCImpl = this;
+
+    private ViewCImpl(SingletonCImpl singletonCImpl, ActivityRetainedCImpl activityRetainedCImpl,
+        ActivityCImpl activityCImpl, View viewParam) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+      this.activityCImpl = activityCImpl;
+
+
+    }
+  }
+
+  private static final class ActivityCImpl extends QuoranApp_HiltComponents.ActivityC {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private final ActivityCImpl activityCImpl = this;
+
+    private ActivityCImpl(SingletonCImpl singletonCImpl,
+        ActivityRetainedCImpl activityRetainedCImpl, Activity activityParam) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+
+
+    }
+
+    @Override
+    public void injectMainActivity(MainActivity mainActivity) {
+    }
+
+    @Override
+    public DefaultViewModelFactories.InternalFactoryFactory getHiltInternalFactoryFactory() {
+      return DefaultViewModelFactories_InternalFactoryFactory_Factory.newInstance(getViewModelKeys(), new ViewModelCBuilder(singletonCImpl, activityRetainedCImpl));
+    }
+
+    @Override
+    public Map<Class<?>, Boolean> getViewModelKeys() {
+      return LazyClassKeyMap.<Boolean>of(ImmutableMap.<String, Boolean>builderWithExpectedSize(14).put(LazyClassKeyProvider.com_quoren_app_feature_audio_AudioSettingsViewModel, AudioSettingsViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_bookmarks_BookmarksViewModel, BookmarksViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_audio_DownloadsViewModel, DownloadsViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_memorization_HifdhDashboardViewModel, HifdhDashboardViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_memorization_HifdhSessionViewModel, HifdhSessionViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_backup_LocalBackupViewModel, LocalBackupViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_MainViewModel, MainViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_mosque_MosqueViewModel, MosqueViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_audio_PlayerViewModel, PlayerViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_prayer_PrayerViewModel, PrayerViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_qibla_QiblaViewModel, QiblaViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_quran_QuranIndexViewModel, QuranIndexViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_reader_ReaderViewModel, ReaderViewModel_HiltModules.KeyModule.provide()).put(LazyClassKeyProvider.com_quoren_app_feature_search_SearchViewModel, SearchViewModel_HiltModules.KeyModule.provide()).build());
+    }
+
+    @Override
+    public ViewModelComponentBuilder getViewModelComponentBuilder() {
+      return new ViewModelCBuilder(singletonCImpl, activityRetainedCImpl);
+    }
+
+    @Override
+    public FragmentComponentBuilder fragmentComponentBuilder() {
+      return new FragmentCBuilder(singletonCImpl, activityRetainedCImpl, activityCImpl);
+    }
+
+    @Override
+    public ViewComponentBuilder viewComponentBuilder() {
+      return new ViewCBuilder(singletonCImpl, activityRetainedCImpl, activityCImpl);
+    }
+
+    @IdentifierNameString
+    private static final class LazyClassKeyProvider {
+      static String com_quoren_app_feature_backup_LocalBackupViewModel = "com.quoren.app.feature.backup.LocalBackupViewModel";
+
+      static String com_quoren_app_feature_qibla_QiblaViewModel = "com.quoren.app.feature.qibla.QiblaViewModel";
+
+      static String com_quoren_app_feature_memorization_HifdhDashboardViewModel = "com.quoren.app.feature.memorization.HifdhDashboardViewModel";
+
+      static String com_quoren_app_MainViewModel = "com.quoren.app.MainViewModel";
+
+      static String com_quoren_app_feature_prayer_PrayerViewModel = "com.quoren.app.feature.prayer.PrayerViewModel";
+
+      static String com_quoren_app_feature_memorization_HifdhSessionViewModel = "com.quoren.app.feature.memorization.HifdhSessionViewModel";
+
+      static String com_quoren_app_feature_quran_QuranIndexViewModel = "com.quoren.app.feature.quran.QuranIndexViewModel";
+
+      static String com_quoren_app_feature_bookmarks_BookmarksViewModel = "com.quoren.app.feature.bookmarks.BookmarksViewModel";
+
+      static String com_quoren_app_feature_audio_AudioSettingsViewModel = "com.quoren.app.feature.audio.AudioSettingsViewModel";
+
+      static String com_quoren_app_feature_search_SearchViewModel = "com.quoren.app.feature.search.SearchViewModel";
+
+      static String com_quoren_app_feature_audio_DownloadsViewModel = "com.quoren.app.feature.audio.DownloadsViewModel";
+
+      static String com_quoren_app_feature_audio_PlayerViewModel = "com.quoren.app.feature.audio.PlayerViewModel";
+
+      static String com_quoren_app_feature_mosque_MosqueViewModel = "com.quoren.app.feature.mosque.MosqueViewModel";
+
+      static String com_quoren_app_feature_reader_ReaderViewModel = "com.quoren.app.feature.reader.ReaderViewModel";
+
+      @KeepFieldType
+      LocalBackupViewModel com_quoren_app_feature_backup_LocalBackupViewModel2;
+
+      @KeepFieldType
+      QiblaViewModel com_quoren_app_feature_qibla_QiblaViewModel2;
+
+      @KeepFieldType
+      HifdhDashboardViewModel com_quoren_app_feature_memorization_HifdhDashboardViewModel2;
+
+      @KeepFieldType
+      MainViewModel com_quoren_app_MainViewModel2;
+
+      @KeepFieldType
+      PrayerViewModel com_quoren_app_feature_prayer_PrayerViewModel2;
+
+      @KeepFieldType
+      HifdhSessionViewModel com_quoren_app_feature_memorization_HifdhSessionViewModel2;
+
+      @KeepFieldType
+      QuranIndexViewModel com_quoren_app_feature_quran_QuranIndexViewModel2;
+
+      @KeepFieldType
+      BookmarksViewModel com_quoren_app_feature_bookmarks_BookmarksViewModel2;
+
+      @KeepFieldType
+      AudioSettingsViewModel com_quoren_app_feature_audio_AudioSettingsViewModel2;
+
+      @KeepFieldType
+      SearchViewModel com_quoren_app_feature_search_SearchViewModel2;
+
+      @KeepFieldType
+      DownloadsViewModel com_quoren_app_feature_audio_DownloadsViewModel2;
+
+      @KeepFieldType
+      PlayerViewModel com_quoren_app_feature_audio_PlayerViewModel2;
+
+      @KeepFieldType
+      MosqueViewModel com_quoren_app_feature_mosque_MosqueViewModel2;
+
+      @KeepFieldType
+      ReaderViewModel com_quoren_app_feature_reader_ReaderViewModel2;
+    }
+  }
+
+  private static final class ViewModelCImpl extends QuoranApp_HiltComponents.ViewModelC {
+    private final SavedStateHandle savedStateHandle;
+
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl;
+
+    private final ViewModelCImpl viewModelCImpl = this;
+
+    private Provider<AudioSettingsViewModel> audioSettingsViewModelProvider;
+
+    private Provider<BookmarksViewModel> bookmarksViewModelProvider;
+
+    private Provider<DownloadsViewModel> downloadsViewModelProvider;
+
+    private Provider<HifdhDashboardViewModel> hifdhDashboardViewModelProvider;
+
+    private Provider<HifdhSessionViewModel> hifdhSessionViewModelProvider;
+
+    private Provider<LocalBackupViewModel> localBackupViewModelProvider;
+
+    private Provider<MainViewModel> mainViewModelProvider;
+
+    private Provider<MosqueViewModel> mosqueViewModelProvider;
+
+    private Provider<PlayerViewModel> playerViewModelProvider;
+
+    private Provider<PrayerViewModel> prayerViewModelProvider;
+
+    private Provider<QiblaViewModel> qiblaViewModelProvider;
+
+    private Provider<QuranIndexViewModel> quranIndexViewModelProvider;
+
+    private Provider<ReaderViewModel> readerViewModelProvider;
+
+    private Provider<SearchViewModel> searchViewModelProvider;
+
+    private ViewModelCImpl(SingletonCImpl singletonCImpl,
+        ActivityRetainedCImpl activityRetainedCImpl, SavedStateHandle savedStateHandleParam,
+        ViewModelLifecycle viewModelLifecycleParam) {
+      this.singletonCImpl = singletonCImpl;
+      this.activityRetainedCImpl = activityRetainedCImpl;
+      this.savedStateHandle = savedStateHandleParam;
+      initialize(savedStateHandleParam, viewModelLifecycleParam);
+
+    }
+
+    private ObserveAudioSettingsUseCase observeAudioSettingsUseCase() {
+      return new ObserveAudioSettingsUseCase(singletonCImpl.audioSettingsRepositoryImplProvider.get());
+    }
+
+    private GetRecitersUseCase getRecitersUseCase() {
+      return new GetRecitersUseCase(singletonCImpl.reciterRepositoryImplProvider.get());
+    }
+
+    private SetDefaultReciterUseCase setDefaultReciterUseCase() {
+      return new SetDefaultReciterUseCase(singletonCImpl.reciterRepositoryImplProvider.get());
+    }
+
+    private UpdateAudioSettingsUseCase updateAudioSettingsUseCase() {
+      return new UpdateAudioSettingsUseCase(singletonCImpl.audioSettingsRepositoryImplProvider.get(), singletonCImpl.audioCacheManagerImplProvider.get());
+    }
+
+    private AudioCacheUseCase audioCacheUseCase() {
+      return new AudioCacheUseCase(singletonCImpl.audioCacheManagerImplProvider.get());
+    }
+
+    private ObservePlaybackStateUseCase observePlaybackStateUseCase() {
+      return new ObservePlaybackStateUseCase(singletonCImpl.media3AudioPlayerManagerProvider.get());
+    }
+
+    private PlayAudioUseCase playAudioUseCase() {
+      return new PlayAudioUseCase(singletonCImpl.media3AudioPlayerManagerProvider.get(), singletonCImpl.audioSettingsRepositoryImplProvider.get(), singletonCImpl.reciterRepositoryImplProvider.get(), singletonCImpl.downloadRepositoryImplProvider.get());
+    }
+
+    private PlaybackControlsUseCase playbackControlsUseCase() {
+      return new PlaybackControlsUseCase(singletonCImpl.media3AudioPlayerManagerProvider.get());
+    }
+
+    private ObserveBookmarksUseCase observeBookmarksUseCase() {
+      return new ObserveBookmarksUseCase(singletonCImpl.bookmarkRepositoryImplProvider.get(), singletonCImpl.quranRepositoryImplProvider.get());
+    }
+
+    private ObserveDownloadsUseCase observeDownloadsUseCase() {
+      return new ObserveDownloadsUseCase(singletonCImpl.downloadRepositoryImplProvider.get());
+    }
+
+    private ObserveDefaultReciterUseCase observeDefaultReciterUseCase() {
+      return new ObserveDefaultReciterUseCase(singletonCImpl.reciterRepositoryImplProvider.get());
+    }
+
+    private GetSurahsUseCase getSurahsUseCase() {
+      return new GetSurahsUseCase(singletonCImpl.quranRepositoryImplProvider.get());
+    }
+
+    private ManageDownloadsUseCase manageDownloadsUseCase() {
+      return new ManageDownloadsUseCase(singletonCImpl.downloadRepositoryImplProvider.get(), singletonCImpl.reciterRepositoryImplProvider.get());
+    }
+
+    private ObserveMemorizationSessionsUseCase observeMemorizationSessionsUseCase() {
+      return new ObserveMemorizationSessionsUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private ObserveMemorizationProgressUseCase observeMemorizationProgressUseCase() {
+      return new ObserveMemorizationProgressUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private ObserveMemorizationCountsUseCase observeMemorizationCountsUseCase() {
+      return new ObserveMemorizationCountsUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private ObserveDailyGoalUseCase observeDailyGoalUseCase() {
+      return new ObserveDailyGoalUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private CreateMemorizationSessionUseCase createMemorizationSessionUseCase() {
+      return new CreateMemorizationSessionUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private GenerateDueReviewsUseCase generateDueReviewsUseCase() {
+      return new GenerateDueReviewsUseCase(singletonCImpl.memorizationRepositoryImplProvider.get(), singletonCImpl.spacedRepetitionEngineProvider.get());
+    }
+
+    private GetAyahUseCase getAyahUseCase() {
+      return new GetAyahUseCase(singletonCImpl.quranRepositoryImplProvider.get());
+    }
+
+    private UpdateDailyGoalUseCase updateDailyGoalUseCase() {
+      return new UpdateDailyGoalUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private GetMemorizationSessionUseCase getMemorizationSessionUseCase() {
+      return new GetMemorizationSessionUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private GetAyahByReferenceUseCase getAyahByReferenceUseCase() {
+      return new GetAyahByReferenceUseCase(singletonCImpl.quranRepositoryImplProvider.get());
+    }
+
+    private ObserveAyahMemorizationProgressUseCase observeAyahMemorizationProgressUseCase() {
+      return new ObserveAyahMemorizationProgressUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private UpdateMemorizationStatusUseCase updateMemorizationStatusUseCase() {
+      return new UpdateMemorizationStatusUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private RateReviewUseCase rateReviewUseCase() {
+      return new RateReviewUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private UpdateMemorizationSessionPositionUseCase updateMemorizationSessionPositionUseCase() {
+      return new UpdateMemorizationSessionPositionUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private CompleteMemorizationSessionUseCase completeMemorizationSessionUseCase() {
+      return new CompleteMemorizationSessionUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private CompleteDailyGoalAyahUseCase completeDailyGoalAyahUseCase() {
+      return new CompleteDailyGoalAyahUseCase(singletonCImpl.memorizationRepositoryImplProvider.get());
+    }
+
+    private ExportUserBackupUseCase exportUserBackupUseCase() {
+      return new ExportUserBackupUseCase(singletonCImpl.localBackupRepositoryImplProvider.get());
+    }
+
+    private ImportUserBackupUseCase importUserBackupUseCase() {
+      return new ImportUserBackupUseCase(singletonCImpl.localBackupRepositoryImplProvider.get());
+    }
+
+    private ObserveReaderSettingsUseCase observeReaderSettingsUseCase() {
+      return new ObserveReaderSettingsUseCase(singletonCImpl.readerSettingsRepositoryImplProvider.get());
+    }
+
+    private UpdateReaderSettingsUseCase updateReaderSettingsUseCase() {
+      return new UpdateReaderSettingsUseCase(singletonCImpl.readerSettingsRepositoryImplProvider.get());
+    }
+
+    private GetCurrentDeviceLocationUseCase getCurrentDeviceLocationUseCase() {
+      return new GetCurrentDeviceLocationUseCase(singletonCImpl.prayerRepositoryImplProvider.get());
+    }
+
+    private SearchPrayerCitiesUseCase searchPrayerCitiesUseCase() {
+      return new SearchPrayerCitiesUseCase(singletonCImpl.androidPrayerCitySearchRepositoryProvider.get());
+    }
+
+    private SearchNearbyMosquesUseCase searchNearbyMosquesUseCase() {
+      return new SearchNearbyMosquesUseCase(singletonCImpl.mosqueRepositoryImplProvider.get());
+    }
+
+    private ObserveFavoriteMosquesUseCase observeFavoriteMosquesUseCase() {
+      return new ObserveFavoriteMosquesUseCase(singletonCImpl.mosqueRepositoryImplProvider.get());
+    }
+
+    private ObserveLastMosqueSearchUseCase observeLastMosqueSearchUseCase() {
+      return new ObserveLastMosqueSearchUseCase(singletonCImpl.mosqueRepositoryImplProvider.get());
+    }
+
+    private ToggleMosqueFavoriteUseCase toggleMosqueFavoriteUseCase() {
+      return new ToggleMosqueFavoriteUseCase(singletonCImpl.mosqueRepositoryImplProvider.get());
+    }
+
+    private ObservePlaybackPositionUseCase observePlaybackPositionUseCase() {
+      return new ObservePlaybackPositionUseCase(singletonCImpl.media3AudioPlayerManagerProvider.get());
+    }
+
+    private SavePrayerLocationUseCase savePrayerLocationUseCase() {
+      return new SavePrayerLocationUseCase(singletonCImpl.prayerRepositoryImplProvider.get());
+    }
+
+    private UpdatePrayerSettingsUseCase updatePrayerSettingsUseCase() {
+      return new UpdatePrayerSettingsUseCase(singletonCImpl.prayerRepositoryImplProvider.get());
+    }
+
+    private SchedulePrayerNotificationsUseCase schedulePrayerNotificationsUseCase() {
+      return new SchedulePrayerNotificationsUseCase(singletonCImpl.prayerNotificationSchedulerImplProvider.get());
+    }
+
+    private GetJuzStartsUseCase getJuzStartsUseCase() {
+      return new GetJuzStartsUseCase(singletonCImpl.quranRepositoryImplProvider.get());
+    }
+
+    private ObserveReadingProgressUseCase observeReadingProgressUseCase() {
+      return new ObserveReadingProgressUseCase(singletonCImpl.readingProgressRepositoryImplProvider.get());
+    }
+
+    private GetPageUseCase getPageUseCase() {
+      return new GetPageUseCase(singletonCImpl.quranRepositoryImplProvider.get());
+    }
+
+    private GetBasmalaUseCase getBasmalaUseCase() {
+      return new GetBasmalaUseCase(singletonCImpl.quranRepositoryImplProvider.get());
+    }
+
+    private ObserveBookmarkedAyahIdsUseCase observeBookmarkedAyahIdsUseCase() {
+      return new ObserveBookmarkedAyahIdsUseCase(singletonCImpl.bookmarkRepositoryImplProvider.get());
+    }
+
+    private ToggleBookmarkUseCase toggleBookmarkUseCase() {
+      return new ToggleBookmarkUseCase(singletonCImpl.bookmarkRepositoryImplProvider.get());
+    }
+
+    private SaveReadingProgressUseCase saveReadingProgressUseCase() {
+      return new SaveReadingProgressUseCase(singletonCImpl.readingProgressRepositoryImplProvider.get());
+    }
+
+    private SearchQuranUseCase searchQuranUseCase() {
+      return new SearchQuranUseCase(singletonCImpl.quranRepositoryImplProvider.get());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void initialize(final SavedStateHandle savedStateHandleParam,
+        final ViewModelLifecycle viewModelLifecycleParam) {
+      this.audioSettingsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 0);
+      this.bookmarksViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 1);
+      this.downloadsViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 2);
+      this.hifdhDashboardViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 3);
+      this.hifdhSessionViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 4);
+      this.localBackupViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 5);
+      this.mainViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 6);
+      this.mosqueViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 7);
+      this.playerViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 8);
+      this.prayerViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 9);
+      this.qiblaViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 10);
+      this.quranIndexViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 11);
+      this.readerViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 12);
+      this.searchViewModelProvider = new SwitchingProvider<>(singletonCImpl, activityRetainedCImpl, viewModelCImpl, 13);
+    }
+
+    @Override
+    public Map<Class<?>, javax.inject.Provider<ViewModel>> getHiltViewModelMap() {
+      return LazyClassKeyMap.<javax.inject.Provider<ViewModel>>of(ImmutableMap.<String, javax.inject.Provider<ViewModel>>builderWithExpectedSize(14).put(LazyClassKeyProvider.com_quoren_app_feature_audio_AudioSettingsViewModel, ((Provider) audioSettingsViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_bookmarks_BookmarksViewModel, ((Provider) bookmarksViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_audio_DownloadsViewModel, ((Provider) downloadsViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_memorization_HifdhDashboardViewModel, ((Provider) hifdhDashboardViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_memorization_HifdhSessionViewModel, ((Provider) hifdhSessionViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_backup_LocalBackupViewModel, ((Provider) localBackupViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_MainViewModel, ((Provider) mainViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_mosque_MosqueViewModel, ((Provider) mosqueViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_audio_PlayerViewModel, ((Provider) playerViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_prayer_PrayerViewModel, ((Provider) prayerViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_qibla_QiblaViewModel, ((Provider) qiblaViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_quran_QuranIndexViewModel, ((Provider) quranIndexViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_reader_ReaderViewModel, ((Provider) readerViewModelProvider)).put(LazyClassKeyProvider.com_quoren_app_feature_search_SearchViewModel, ((Provider) searchViewModelProvider)).build());
+    }
+
+    @Override
+    public Map<Class<?>, Object> getHiltViewModelAssistedMap() {
+      return ImmutableMap.<Class<?>, Object>of();
+    }
+
+    @IdentifierNameString
+    private static final class LazyClassKeyProvider {
+      static String com_quoren_app_feature_audio_PlayerViewModel = "com.quoren.app.feature.audio.PlayerViewModel";
+
+      static String com_quoren_app_feature_prayer_PrayerViewModel = "com.quoren.app.feature.prayer.PrayerViewModel";
+
+      static String com_quoren_app_feature_quran_QuranIndexViewModel = "com.quoren.app.feature.quran.QuranIndexViewModel";
+
+      static String com_quoren_app_MainViewModel = "com.quoren.app.MainViewModel";
+
+      static String com_quoren_app_feature_audio_DownloadsViewModel = "com.quoren.app.feature.audio.DownloadsViewModel";
+
+      static String com_quoren_app_feature_backup_LocalBackupViewModel = "com.quoren.app.feature.backup.LocalBackupViewModel";
+
+      static String com_quoren_app_feature_audio_AudioSettingsViewModel = "com.quoren.app.feature.audio.AudioSettingsViewModel";
+
+      static String com_quoren_app_feature_qibla_QiblaViewModel = "com.quoren.app.feature.qibla.QiblaViewModel";
+
+      static String com_quoren_app_feature_search_SearchViewModel = "com.quoren.app.feature.search.SearchViewModel";
+
+      static String com_quoren_app_feature_memorization_HifdhDashboardViewModel = "com.quoren.app.feature.memorization.HifdhDashboardViewModel";
+
+      static String com_quoren_app_feature_reader_ReaderViewModel = "com.quoren.app.feature.reader.ReaderViewModel";
+
+      static String com_quoren_app_feature_bookmarks_BookmarksViewModel = "com.quoren.app.feature.bookmarks.BookmarksViewModel";
+
+      static String com_quoren_app_feature_memorization_HifdhSessionViewModel = "com.quoren.app.feature.memorization.HifdhSessionViewModel";
+
+      static String com_quoren_app_feature_mosque_MosqueViewModel = "com.quoren.app.feature.mosque.MosqueViewModel";
+
+      @KeepFieldType
+      PlayerViewModel com_quoren_app_feature_audio_PlayerViewModel2;
+
+      @KeepFieldType
+      PrayerViewModel com_quoren_app_feature_prayer_PrayerViewModel2;
+
+      @KeepFieldType
+      QuranIndexViewModel com_quoren_app_feature_quran_QuranIndexViewModel2;
+
+      @KeepFieldType
+      MainViewModel com_quoren_app_MainViewModel2;
+
+      @KeepFieldType
+      DownloadsViewModel com_quoren_app_feature_audio_DownloadsViewModel2;
+
+      @KeepFieldType
+      LocalBackupViewModel com_quoren_app_feature_backup_LocalBackupViewModel2;
+
+      @KeepFieldType
+      AudioSettingsViewModel com_quoren_app_feature_audio_AudioSettingsViewModel2;
+
+      @KeepFieldType
+      QiblaViewModel com_quoren_app_feature_qibla_QiblaViewModel2;
+
+      @KeepFieldType
+      SearchViewModel com_quoren_app_feature_search_SearchViewModel2;
+
+      @KeepFieldType
+      HifdhDashboardViewModel com_quoren_app_feature_memorization_HifdhDashboardViewModel2;
+
+      @KeepFieldType
+      ReaderViewModel com_quoren_app_feature_reader_ReaderViewModel2;
+
+      @KeepFieldType
+      BookmarksViewModel com_quoren_app_feature_bookmarks_BookmarksViewModel2;
+
+      @KeepFieldType
+      HifdhSessionViewModel com_quoren_app_feature_memorization_HifdhSessionViewModel2;
+
+      @KeepFieldType
+      MosqueViewModel com_quoren_app_feature_mosque_MosqueViewModel2;
+    }
+
+    private static final class SwitchingProvider<T> implements Provider<T> {
+      private final SingletonCImpl singletonCImpl;
+
+      private final ActivityRetainedCImpl activityRetainedCImpl;
+
+      private final ViewModelCImpl viewModelCImpl;
+
+      private final int id;
+
+      SwitchingProvider(SingletonCImpl singletonCImpl, ActivityRetainedCImpl activityRetainedCImpl,
+          ViewModelCImpl viewModelCImpl, int id) {
+        this.singletonCImpl = singletonCImpl;
+        this.activityRetainedCImpl = activityRetainedCImpl;
+        this.viewModelCImpl = viewModelCImpl;
+        this.id = id;
+      }
+
+      @SuppressWarnings("unchecked")
+      @Override
+      public T get() {
+        switch (id) {
+          case 0: // com.quoren.app.feature.audio.AudioSettingsViewModel 
+          return (T) new AudioSettingsViewModel(viewModelCImpl.observeAudioSettingsUseCase(), viewModelCImpl.getRecitersUseCase(), viewModelCImpl.setDefaultReciterUseCase(), viewModelCImpl.updateAudioSettingsUseCase(), viewModelCImpl.audioCacheUseCase(), viewModelCImpl.observePlaybackStateUseCase(), viewModelCImpl.playAudioUseCase(), viewModelCImpl.playbackControlsUseCase());
+
+          case 1: // com.quoren.app.feature.bookmarks.BookmarksViewModel 
+          return (T) new BookmarksViewModel(viewModelCImpl.observeBookmarksUseCase());
+
+          case 2: // com.quoren.app.feature.audio.DownloadsViewModel 
+          return (T) new DownloadsViewModel(viewModelCImpl.observeDownloadsUseCase(), viewModelCImpl.observeDefaultReciterUseCase(), viewModelCImpl.getSurahsUseCase(), viewModelCImpl.getRecitersUseCase(), viewModelCImpl.manageDownloadsUseCase());
+
+          case 3: // com.quoren.app.feature.memorization.HifdhDashboardViewModel 
+          return (T) new HifdhDashboardViewModel(viewModelCImpl.observeMemorizationSessionsUseCase(), viewModelCImpl.observeMemorizationProgressUseCase(), viewModelCImpl.observeMemorizationCountsUseCase(), viewModelCImpl.observeDailyGoalUseCase(), viewModelCImpl.getSurahsUseCase(), viewModelCImpl.getRecitersUseCase(), viewModelCImpl.observeDefaultReciterUseCase(), viewModelCImpl.createMemorizationSessionUseCase(), viewModelCImpl.generateDueReviewsUseCase(), viewModelCImpl.getAyahUseCase(), viewModelCImpl.updateDailyGoalUseCase());
+
+          case 4: // com.quoren.app.feature.memorization.HifdhSessionViewModel 
+          return (T) new HifdhSessionViewModel(viewModelCImpl.savedStateHandle, viewModelCImpl.getMemorizationSessionUseCase(), viewModelCImpl.getSurahsUseCase(), viewModelCImpl.getAyahByReferenceUseCase(), viewModelCImpl.observeAyahMemorizationProgressUseCase(), viewModelCImpl.observePlaybackStateUseCase(), viewModelCImpl.observeAudioSettingsUseCase(), viewModelCImpl.playAudioUseCase(), viewModelCImpl.updateMemorizationStatusUseCase(), viewModelCImpl.rateReviewUseCase(), viewModelCImpl.updateMemorizationSessionPositionUseCase(), viewModelCImpl.completeMemorizationSessionUseCase(), viewModelCImpl.completeDailyGoalAyahUseCase(), singletonCImpl.androidOfflineRecitationRecognizerProvider.get());
+
+          case 5: // com.quoren.app.feature.backup.LocalBackupViewModel 
+          return (T) new LocalBackupViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), viewModelCImpl.exportUserBackupUseCase(), viewModelCImpl.importUserBackupUseCase());
+
+          case 6: // com.quoren.app.MainViewModel 
+          return (T) new MainViewModel(viewModelCImpl.observeReaderSettingsUseCase(), viewModelCImpl.observePlaybackStateUseCase(), viewModelCImpl.updateReaderSettingsUseCase());
+
+          case 7: // com.quoren.app.feature.mosque.MosqueViewModel 
+          return (T) new MosqueViewModel(singletonCImpl.observePrayerConfigurationUseCase(), viewModelCImpl.getCurrentDeviceLocationUseCase(), viewModelCImpl.searchPrayerCitiesUseCase(), viewModelCImpl.searchNearbyMosquesUseCase(), viewModelCImpl.observeFavoriteMosquesUseCase(), viewModelCImpl.observeLastMosqueSearchUseCase(), viewModelCImpl.toggleMosqueFavoriteUseCase());
+
+          case 8: // com.quoren.app.feature.audio.PlayerViewModel 
+          return (T) new PlayerViewModel(viewModelCImpl.observePlaybackStateUseCase(), viewModelCImpl.observePlaybackPositionUseCase(), viewModelCImpl.playbackControlsUseCase());
+
+          case 9: // com.quoren.app.feature.prayer.PrayerViewModel 
+          return (T) new PrayerViewModel(singletonCImpl.observePrayerConfigurationUseCase(), viewModelCImpl.savePrayerLocationUseCase(), viewModelCImpl.updatePrayerSettingsUseCase(), viewModelCImpl.getCurrentDeviceLocationUseCase(), viewModelCImpl.schedulePrayerNotificationsUseCase(), viewModelCImpl.searchPrayerCitiesUseCase(), singletonCImpl.prayerTimeEngineProvider.get());
+
+          case 10: // com.quoren.app.feature.qibla.QiblaViewModel 
+          return (T) new QiblaViewModel(singletonCImpl.observePrayerConfigurationUseCase(), viewModelCImpl.savePrayerLocationUseCase(), viewModelCImpl.getCurrentDeviceLocationUseCase(), singletonCImpl.androidCompassRepositoryProvider.get(), singletonCImpl.qiblaEngineProvider.get());
+
+          case 11: // com.quoren.app.feature.quran.QuranIndexViewModel 
+          return (T) new QuranIndexViewModel(viewModelCImpl.getSurahsUseCase(), viewModelCImpl.getJuzStartsUseCase(), viewModelCImpl.observeReadingProgressUseCase());
+
+          case 12: // com.quoren.app.feature.reader.ReaderViewModel 
+          return (T) new ReaderViewModel(viewModelCImpl.savedStateHandle, viewModelCImpl.getPageUseCase(), viewModelCImpl.getSurahsUseCase(), viewModelCImpl.getBasmalaUseCase(), viewModelCImpl.observeReaderSettingsUseCase(), viewModelCImpl.observeBookmarkedAyahIdsUseCase(), viewModelCImpl.updateReaderSettingsUseCase(), viewModelCImpl.toggleBookmarkUseCase(), viewModelCImpl.saveReadingProgressUseCase(), viewModelCImpl.playAudioUseCase(), viewModelCImpl.observeAudioSettingsUseCase(), viewModelCImpl.getAyahUseCase(), viewModelCImpl.updateMemorizationStatusUseCase(), viewModelCImpl.completeDailyGoalAyahUseCase(), singletonCImpl.androidOfflineRecitationRecognizerProvider.get(), singletonCImpl.ayahSynchronizationEngineProvider.get(), viewModelCImpl.observePlaybackStateUseCase());
+
+          case 13: // com.quoren.app.feature.search.SearchViewModel 
+          return (T) new SearchViewModel(viewModelCImpl.searchQuranUseCase());
+
+          default: throw new AssertionError(id);
+        }
+      }
+    }
+  }
+
+  private static final class ActivityRetainedCImpl extends QuoranApp_HiltComponents.ActivityRetainedC {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ActivityRetainedCImpl activityRetainedCImpl = this;
+
+    private Provider<ActivityRetainedLifecycle> provideActivityRetainedLifecycleProvider;
+
+    private ActivityRetainedCImpl(SingletonCImpl singletonCImpl,
+        SavedStateHandleHolder savedStateHandleHolderParam) {
+      this.singletonCImpl = singletonCImpl;
+
+      initialize(savedStateHandleHolderParam);
+
+    }
+
+    @SuppressWarnings("unchecked")
+    private void initialize(final SavedStateHandleHolder savedStateHandleHolderParam) {
+      this.provideActivityRetainedLifecycleProvider = DoubleCheck.provider(new SwitchingProvider<ActivityRetainedLifecycle>(singletonCImpl, activityRetainedCImpl, 0));
+    }
+
+    @Override
+    public ActivityComponentBuilder activityComponentBuilder() {
+      return new ActivityCBuilder(singletonCImpl, activityRetainedCImpl);
+    }
+
+    @Override
+    public ActivityRetainedLifecycle getActivityRetainedLifecycle() {
+      return provideActivityRetainedLifecycleProvider.get();
+    }
+
+    private static final class SwitchingProvider<T> implements Provider<T> {
+      private final SingletonCImpl singletonCImpl;
+
+      private final ActivityRetainedCImpl activityRetainedCImpl;
+
+      private final int id;
+
+      SwitchingProvider(SingletonCImpl singletonCImpl, ActivityRetainedCImpl activityRetainedCImpl,
+          int id) {
+        this.singletonCImpl = singletonCImpl;
+        this.activityRetainedCImpl = activityRetainedCImpl;
+        this.id = id;
+      }
+
+      @SuppressWarnings("unchecked")
+      @Override
+      public T get() {
+        switch (id) {
+          case 0: // dagger.hilt.android.ActivityRetainedLifecycle 
+          return (T) ActivityRetainedComponentManager_LifecycleModule_ProvideActivityRetainedLifecycleFactory.provideActivityRetainedLifecycle();
+
+          default: throw new AssertionError(id);
+        }
+      }
+    }
+  }
+
+  private static final class ServiceCImpl extends QuoranApp_HiltComponents.ServiceC {
+    private final SingletonCImpl singletonCImpl;
+
+    private final ServiceCImpl serviceCImpl = this;
+
+    private ServiceCImpl(SingletonCImpl singletonCImpl, Service serviceParam) {
+      this.singletonCImpl = singletonCImpl;
+
+
+    }
+
+    @Override
+    public void injectPlaybackService(PlaybackService playbackService) {
+      injectPlaybackService2(playbackService);
+    }
+
+    private PlaybackService injectPlaybackService2(PlaybackService instance) {
+      PlaybackService_MembersInjector.injectPlayer(instance, singletonCImpl.exoPlayerProvider.get());
+      return instance;
+    }
+  }
+
+  private static final class SingletonCImpl extends QuoranApp_HiltComponents.SingletonC {
+    private final ApplicationContextModule applicationContextModule;
+
+    private final SingletonCImpl singletonCImpl = this;
+
+    private Provider<PrayerRepositoryImpl> prayerRepositoryImplProvider;
+
+    private Provider<PrayerTimeEngine> prayerTimeEngineProvider;
+
+    private Provider<PrayerAlertPlanner> prayerAlertPlannerProvider;
+
+    private Provider<PrayerNotificationSchedulerImpl> prayerNotificationSchedulerImplProvider;
+
+    private Provider<PrayerReminderRefreshWorker_AssistedFactory> prayerReminderRefreshWorker_AssistedFactoryProvider;
+
+    private Provider<QuranDatabase> databaseProvider;
+
+    private Provider<AudioFileStore> audioFileStoreProvider;
+
+    private Provider<OkHttpClient> okHttpProvider;
+
+    private Provider<SurahDownloadWorker_AssistedFactory> surahDownloadWorker_AssistedFactoryProvider;
+
+    private Provider<AudioSettingsRepositoryImpl> audioSettingsRepositoryImplProvider;
+
+    private Provider<ReciterRepositoryImpl> reciterRepositoryImplProvider;
+
+    private Provider<ConfigurableLruCacheEvictor> cacheEvictorProvider;
+
+    private Provider<SimpleCache> simpleCacheProvider;
+
+    private Provider<AudioCacheManagerImpl> audioCacheManagerImplProvider;
+
+    private Provider<ExoPlayer> exoPlayerProvider;
+
+    private Provider<AudioSourceProviderImpl> audioSourceProviderImplProvider;
+
+    private Provider<QuranDatasetImporter> quranDatasetImporterProvider;
+
+    private Provider<QuranRepositoryImpl> quranRepositoryImplProvider;
+
+    private Provider<Media3AudioPlayerManager> media3AudioPlayerManagerProvider;
+
+    private Provider<DownloadRepositoryImpl> downloadRepositoryImplProvider;
+
+    private Provider<BookmarkRepositoryImpl> bookmarkRepositoryImplProvider;
+
+    private Provider<SpacedRepetitionEngine> spacedRepetitionEngineProvider;
+
+    private Provider<MemorizationRepositoryImpl> memorizationRepositoryImplProvider;
+
+    private Provider<AndroidOfflineRecitationRecognizer> androidOfflineRecitationRecognizerProvider;
+
+    private Provider<ReaderSettingsRepositoryImpl> readerSettingsRepositoryImplProvider;
+
+    private Provider<MosqueRepositoryImpl> mosqueRepositoryImplProvider;
+
+    private Provider<LocalBackupRepositoryImpl> localBackupRepositoryImplProvider;
+
+    private Provider<AndroidPrayerCitySearchRepository> androidPrayerCitySearchRepositoryProvider;
+
+    private Provider<AndroidCompassRepository> androidCompassRepositoryProvider;
+
+    private Provider<QiblaEngine> qiblaEngineProvider;
+
+    private Provider<ReadingProgressRepositoryImpl> readingProgressRepositoryImplProvider;
+
+    private Provider<AyahSynchronizationEngine> ayahSynchronizationEngineProvider;
+
+    private SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
+      this.applicationContextModule = applicationContextModuleParam;
+      initialize(applicationContextModuleParam);
+      initialize2(applicationContextModuleParam);
+
+    }
+
+    private ObservePrayerConfigurationUseCase observePrayerConfigurationUseCase() {
+      return new ObservePrayerConfigurationUseCase(prayerRepositoryImplProvider.get());
+    }
+
+    private Map<String, javax.inject.Provider<WorkerAssistedFactory<? extends ListenableWorker>>> mapOfStringAndProviderOfWorkerAssistedFactoryOf(
+        ) {
+      return ImmutableMap.<String, javax.inject.Provider<WorkerAssistedFactory<? extends ListenableWorker>>>of("com.quoren.app.data.prayer.PrayerReminderRefreshWorker", ((Provider) prayerReminderRefreshWorker_AssistedFactoryProvider), "com.quoren.app.data.download.SurahDownloadWorker", ((Provider) surahDownloadWorker_AssistedFactoryProvider));
+    }
+
+    private HiltWorkerFactory hiltWorkerFactory() {
+      return WorkerFactoryModule_ProvideFactoryFactory.provideFactory(mapOfStringAndProviderOfWorkerAssistedFactoryOf());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void initialize(final ApplicationContextModule applicationContextModuleParam) {
+      this.prayerRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<PrayerRepositoryImpl>(singletonCImpl, 1));
+      this.prayerTimeEngineProvider = DoubleCheck.provider(new SwitchingProvider<PrayerTimeEngine>(singletonCImpl, 4));
+      this.prayerAlertPlannerProvider = DoubleCheck.provider(new SwitchingProvider<PrayerAlertPlanner>(singletonCImpl, 3));
+      this.prayerNotificationSchedulerImplProvider = DoubleCheck.provider(new SwitchingProvider<PrayerNotificationSchedulerImpl>(singletonCImpl, 2));
+      this.prayerReminderRefreshWorker_AssistedFactoryProvider = SingleCheck.provider(new SwitchingProvider<PrayerReminderRefreshWorker_AssistedFactory>(singletonCImpl, 0));
+      this.databaseProvider = DoubleCheck.provider(new SwitchingProvider<QuranDatabase>(singletonCImpl, 6));
+      this.audioFileStoreProvider = DoubleCheck.provider(new SwitchingProvider<AudioFileStore>(singletonCImpl, 7));
+      this.okHttpProvider = DoubleCheck.provider(new SwitchingProvider<OkHttpClient>(singletonCImpl, 8));
+      this.surahDownloadWorker_AssistedFactoryProvider = SingleCheck.provider(new SwitchingProvider<SurahDownloadWorker_AssistedFactory>(singletonCImpl, 5));
+      this.audioSettingsRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<AudioSettingsRepositoryImpl>(singletonCImpl, 9));
+      this.reciterRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<ReciterRepositoryImpl>(singletonCImpl, 10));
+      this.cacheEvictorProvider = DoubleCheck.provider(new SwitchingProvider<ConfigurableLruCacheEvictor>(singletonCImpl, 13));
+      this.simpleCacheProvider = DoubleCheck.provider(new SwitchingProvider<SimpleCache>(singletonCImpl, 12));
+      this.audioCacheManagerImplProvider = DoubleCheck.provider(new SwitchingProvider<AudioCacheManagerImpl>(singletonCImpl, 11));
+      this.exoPlayerProvider = DoubleCheck.provider(new SwitchingProvider<ExoPlayer>(singletonCImpl, 15));
+      this.audioSourceProviderImplProvider = DoubleCheck.provider(new SwitchingProvider<AudioSourceProviderImpl>(singletonCImpl, 16));
+      this.quranDatasetImporterProvider = DoubleCheck.provider(new SwitchingProvider<QuranDatasetImporter>(singletonCImpl, 18));
+      this.quranRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<QuranRepositoryImpl>(singletonCImpl, 17));
+      this.media3AudioPlayerManagerProvider = DoubleCheck.provider(new SwitchingProvider<Media3AudioPlayerManager>(singletonCImpl, 14));
+      this.downloadRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<DownloadRepositoryImpl>(singletonCImpl, 19));
+      this.bookmarkRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<BookmarkRepositoryImpl>(singletonCImpl, 20));
+      this.spacedRepetitionEngineProvider = DoubleCheck.provider(new SwitchingProvider<SpacedRepetitionEngine>(singletonCImpl, 22));
+      this.memorizationRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<MemorizationRepositoryImpl>(singletonCImpl, 21));
+      this.androidOfflineRecitationRecognizerProvider = DoubleCheck.provider(new SwitchingProvider<AndroidOfflineRecitationRecognizer>(singletonCImpl, 23));
+      this.readerSettingsRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<ReaderSettingsRepositoryImpl>(singletonCImpl, 25));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void initialize2(final ApplicationContextModule applicationContextModuleParam) {
+      this.mosqueRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<MosqueRepositoryImpl>(singletonCImpl, 26));
+      this.localBackupRepositoryImplProvider = SingleCheck.provider(new SwitchingProvider<LocalBackupRepositoryImpl>(singletonCImpl, 24));
+      this.androidPrayerCitySearchRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<AndroidPrayerCitySearchRepository>(singletonCImpl, 27));
+      this.androidCompassRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<AndroidCompassRepository>(singletonCImpl, 28));
+      this.qiblaEngineProvider = DoubleCheck.provider(new SwitchingProvider<QiblaEngine>(singletonCImpl, 29));
+      this.readingProgressRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<ReadingProgressRepositoryImpl>(singletonCImpl, 30));
+      this.ayahSynchronizationEngineProvider = DoubleCheck.provider(new SwitchingProvider<AyahSynchronizationEngine>(singletonCImpl, 31));
+    }
+
+    @Override
+    public void injectQuoranApp(QuoranApp quoranApp) {
+      injectQuoranApp2(quoranApp);
+    }
+
+    @Override
+    public Set<Boolean> getDisableFragmentGetContextFix() {
+      return ImmutableSet.<Boolean>of();
+    }
+
+    @Override
+    public ActivityRetainedComponentBuilder retainedComponentBuilder() {
+      return new ActivityRetainedCBuilder(singletonCImpl);
+    }
+
+    @Override
+    public ServiceComponentBuilder serviceComponentBuilder() {
+      return new ServiceCBuilder(singletonCImpl);
+    }
+
+    private QuoranApp injectQuoranApp2(QuoranApp instance) {
+      QuoranApp_MembersInjector.injectWorkerFactory(instance, hiltWorkerFactory());
+      return instance;
+    }
+
+    private static final class SwitchingProvider<T> implements Provider<T> {
+      private final SingletonCImpl singletonCImpl;
+
+      private final int id;
+
+      SwitchingProvider(SingletonCImpl singletonCImpl, int id) {
+        this.singletonCImpl = singletonCImpl;
+        this.id = id;
+      }
+
+      @SuppressWarnings("unchecked")
+      @Override
+      public T get() {
+        switch (id) {
+          case 0: // com.quoren.app.data.prayer.PrayerReminderRefreshWorker_AssistedFactory 
+          return (T) new PrayerReminderRefreshWorker_AssistedFactory() {
+            @Override
+            public PrayerReminderRefreshWorker create(Context context, WorkerParameters params) {
+              return new PrayerReminderRefreshWorker(context, params, singletonCImpl.observePrayerConfigurationUseCase(), singletonCImpl.prayerNotificationSchedulerImplProvider.get());
+            }
+          };
+
+          case 1: // com.quoren.app.data.repository.PrayerRepositoryImpl 
+          return (T) new PrayerRepositoryImpl(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+
+          case 2: // com.quoren.app.data.prayer.PrayerNotificationSchedulerImpl 
+          return (T) new PrayerNotificationSchedulerImpl(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.prayerAlertPlannerProvider.get());
+
+          case 3: // com.quoren.app.domain.prayer.PrayerAlertPlanner 
+          return (T) new PrayerAlertPlanner(singletonCImpl.prayerTimeEngineProvider.get());
+
+          case 4: // com.quoren.app.domain.prayer.PrayerTimeEngine 
+          return (T) new PrayerTimeEngine();
+
+          case 5: // com.quoren.app.data.download.SurahDownloadWorker_AssistedFactory 
+          return (T) new SurahDownloadWorker_AssistedFactory() {
+            @Override
+            public SurahDownloadWorker create(Context context2, WorkerParameters params2) {
+              return new SurahDownloadWorker(context2, params2, singletonCImpl.databaseProvider.get(), singletonCImpl.audioFileStoreProvider.get(), singletonCImpl.okHttpProvider.get());
+            }
+          };
+
+          case 6: // com.quoren.app.data.local.QuranDatabase 
+          return (T) DatabaseModule_DatabaseFactory.database(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+
+          case 7: // com.quoren.app.data.audio.AudioFileStore 
+          return (T) new AudioFileStore(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+
+          case 8: // okhttp3.OkHttpClient 
+          return (T) AudioModule_OkHttpFactory.okHttp();
+
+          case 9: // com.quoren.app.data.repository.AudioSettingsRepositoryImpl 
+          return (T) new AudioSettingsRepositoryImpl(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+
+          case 10: // com.quoren.app.data.repository.ReciterRepositoryImpl 
+          return (T) new ReciterRepositoryImpl(singletonCImpl.audioSettingsRepositoryImplProvider.get());
+
+          case 11: // com.quoren.app.data.audio.AudioCacheManagerImpl 
+          return (T) new AudioCacheManagerImpl(singletonCImpl.simpleCacheProvider.get(), singletonCImpl.cacheEvictorProvider.get());
+
+          case 12: // androidx.media3.datasource.cache.SimpleCache 
+          return (T) AudioModule_SimpleCacheFactory.simpleCache(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.cacheEvictorProvider.get());
+
+          case 13: // com.quoren.app.data.audio.ConfigurableLruCacheEvictor 
+          return (T) AudioModule_CacheEvictorFactory.cacheEvictor();
+
+          case 14: // com.quoren.app.data.audio.Media3AudioPlayerManager 
+          return (T) new Media3AudioPlayerManager(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), DoubleCheck.lazy(singletonCImpl.exoPlayerProvider), singletonCImpl.cacheEvictorProvider.get(), singletonCImpl.reciterRepositoryImplProvider.get(), singletonCImpl.audioSettingsRepositoryImplProvider.get(), singletonCImpl.audioSourceProviderImplProvider.get(), singletonCImpl.quranRepositoryImplProvider.get(), singletonCImpl.databaseProvider.get());
+
+          case 15: // androidx.media3.exoplayer.ExoPlayer 
+          return (T) AudioModule_ExoPlayerFactory.exoPlayer(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.simpleCacheProvider.get());
+
+          case 16: // com.quoren.app.data.audio.AudioSourceProviderImpl 
+          return (T) new AudioSourceProviderImpl(singletonCImpl.audioFileStoreProvider.get());
+
+          case 17: // com.quoren.app.data.repository.QuranRepositoryImpl 
+          return (T) new QuranRepositoryImpl(singletonCImpl.databaseProvider.get(), singletonCImpl.quranDatasetImporterProvider.get());
+
+          case 18: // com.quoren.app.data.importer.QuranDatasetImporter 
+          return (T) new QuranDatasetImporter(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.databaseProvider.get());
+
+          case 19: // com.quoren.app.data.download.DownloadRepositoryImpl 
+          return (T) new DownloadRepositoryImpl(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.databaseProvider.get(), singletonCImpl.audioFileStoreProvider.get(), singletonCImpl.quranRepositoryImplProvider.get());
+
+          case 20: // com.quoren.app.data.repository.BookmarkRepositoryImpl 
+          return (T) new BookmarkRepositoryImpl(singletonCImpl.databaseProvider.get());
+
+          case 21: // com.quoren.app.data.repository.MemorizationRepositoryImpl 
+          return (T) new MemorizationRepositoryImpl(singletonCImpl.databaseProvider.get(), singletonCImpl.spacedRepetitionEngineProvider.get(), singletonCImpl.quranRepositoryImplProvider.get(), singletonCImpl.reciterRepositoryImplProvider.get());
+
+          case 22: // com.quoren.app.domain.memorization.SpacedRepetitionEngine 
+          return (T) new SpacedRepetitionEngine();
+
+          case 23: // com.quoren.app.data.memorization.AndroidOfflineRecitationRecognizer 
+          return (T) new AndroidOfflineRecitationRecognizer(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.okHttpProvider.get());
+
+          case 24: // com.quoren.app.data.backup.LocalBackupRepositoryImpl 
+          return (T) new LocalBackupRepositoryImpl(singletonCImpl.databaseProvider.get(), singletonCImpl.readerSettingsRepositoryImplProvider.get(), singletonCImpl.audioSettingsRepositoryImplProvider.get(), singletonCImpl.prayerRepositoryImplProvider.get(), singletonCImpl.mosqueRepositoryImplProvider.get());
+
+          case 25: // com.quoren.app.data.repository.ReaderSettingsRepositoryImpl 
+          return (T) new ReaderSettingsRepositoryImpl(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+
+          case 26: // com.quoren.app.data.mosque.MosqueRepositoryImpl 
+          return (T) new MosqueRepositoryImpl(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.okHttpProvider.get());
+
+          case 27: // com.quoren.app.data.prayer.AndroidPrayerCitySearchRepository 
+          return (T) new AndroidPrayerCitySearchRepository(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule), singletonCImpl.okHttpProvider.get());
+
+          case 28: // com.quoren.app.data.qibla.AndroidCompassRepository 
+          return (T) new AndroidCompassRepository(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+
+          case 29: // com.quoren.app.domain.qibla.QiblaEngine 
+          return (T) new QiblaEngine();
+
+          case 30: // com.quoren.app.data.repository.ReadingProgressRepositoryImpl 
+          return (T) new ReadingProgressRepositoryImpl(singletonCImpl.databaseProvider.get());
+
+          case 31: // com.quoren.app.domain.audio.AyahSynchronizationEngine 
+          return (T) new AyahSynchronizationEngine(singletonCImpl.media3AudioPlayerManagerProvider.get(), singletonCImpl.quranRepositoryImplProvider.get());
+
+          default: throw new AssertionError(id);
+        }
+      }
+    }
+  }
+}
